@@ -80,7 +80,7 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
         className={`${poppins.variable} flex min-h-screen flex-col bg-white font-sans-en`}
       >
         <Navbar />
-        <main className="flex-1">{children}</main>
+        <main className="flex min-h-0 flex-1 flex-col">{children}</main>
         <Footer />
       </div>
     </NextIntlClientProvider>
