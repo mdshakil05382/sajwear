@@ -389,11 +389,9 @@
     "retry": "Try again",
     "notFoundMetaTitle": "Page not found",
     "notFoundMetaDescription": "This page does not exist or has been moved.",
-    "notFoundBadge": "404 error",
     "notFoundTitle": "We can’t find that page",
     "notFoundDescription": "The link may be broken or the page may have been removed. Try the home page or search the store.",
-    "goHome": "Back to home",
-    "notFoundBrowseSearch": "Search products"
+    "goHome": "Back to home"
   },
   "variantModal": {
     "title": "Select options",
