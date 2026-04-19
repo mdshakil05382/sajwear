@@ -9,7 +9,6 @@ export type PlaceholderTitleKey =
   | "account"
   | "cart"
   | "wishlist"
-  | "blog"
   | "information"
   | "aboutUs"
   | "contactUs"

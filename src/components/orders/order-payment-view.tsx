@@ -419,14 +419,15 @@ function FormView({
 
       <div className="mt-6 rounded-md border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-700">
         <p className="font-medium text-neutral-950">{t("instructionsTitle")}</p>
+        {store?.phone ? (
+          <p className="mt-1">
+            {t("instructionsPaymentNumberLabel")}{" "}
+            <span className="text-primary tabular-nums">{store.phone}</span>
+          </p>
+        ) : null}
         <p className="mt-1">
           {t("instructionsBody", { orderNumber: order.order_number })}
         </p>
-        {store?.phone ? (
-          <p className="mt-1">
-            {t("instructionsPaymentNumber", { number: store.phone })}
-          </p>
-        ) : null}
       </div>
 
       <form onSubmit={onSubmit} className="mt-6 grid gap-5" noValidate>

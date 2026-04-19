@@ -6,6 +6,12 @@ import type { CartItem, CartMap } from "@/types/cart";
 
 const CART_STORAGE_KEY = "sarar-global-cart";
 
+/**
+ * Where the user is acting: cart drawer / badge (`cart` → always `itemsMap`) vs checkout summary
+ * (`checkout` → `buyNowMap` when a Buy Now session is active, else `itemsMap`).
+ */
+export type CartLineMutationScope = "cart" | "checkout";
+
 type CartState = {
   /** Primary cart — keyed by `${product_public_id}::${variant_public_id ?? "default"}` */
   itemsMap: CartMap;
@@ -21,9 +27,13 @@ type CartState = {
   closeCartPanel: () => void;
   hydrateCart: () => void;
   addItem: (item: Omit<CartItem, "quantity">, quantity?: number) => void;
-  removeItem: (productPublicId: string, variantPublicId?: string) => void;
-  increment: (productPublicId: string, variantPublicId?: string) => void;
-  decrement: (productPublicId: string, variantPublicId?: string) => void;
+  removeItem: (
+    productPublicId: string,
+    variantPublicId?: string,
+    scope?: CartLineMutationScope,
+  ) => void;
+  increment: (productPublicId: string, variantPublicId?: string, scope?: CartLineMutationScope) => void;
+  decrement: (productPublicId: string, variantPublicId?: string, scope?: CartLineMutationScope) => void;
   clear: () => void;
   /**
    * Stateless Buy Now — clones `itemsMap`, merges the given item, and stores
@@ -40,6 +50,17 @@ type CartState = {
     productPublicId: string,
     oldVariantPublicId: string | undefined,
     updates: Omit<CartItem, "quantity">,
+  ) => void;
+  /**
+   * Sets line quantity (or removes the line if quantity ≤ 0). Used when reconciling
+   * cart lines with server stock. Optionally updates `max_quantity` from a fresh product fetch.
+   */
+  setLineQuantity: (
+    productPublicId: string,
+    variantPublicId: string | undefined,
+    quantity: number,
+    scope?: CartLineMutationScope,
+    patch?: { max_quantity?: number; unsetMaxQuantity?: boolean },
   ) => void;
 };
 
@@ -150,6 +171,24 @@ function mergeItemIntoMap(
   };
 }
 
+/** Snapshot of cart lines used for checkout (Buy Now map when active, else main cart). */
+export function getCheckoutCartItems(): CartItem[] {
+  const state = useCartStore.getState();
+  const map = state.buyNowMap ?? state.itemsMap;
+  return Object.values(map);
+}
+
+/** Resolves which map to read/write for increment/decrement/remove. */
+function getLineMutationTarget(
+  state: CartState,
+  scope: CartLineMutationScope,
+): { map: CartMap; persist: boolean } {
+  if (scope === "checkout" && state.buyNowMap != null) {
+    return { map: state.buyNowMap, persist: false };
+  }
+  return { map: state.itemsMap, persist: true };
+}
+
 export const useCartStore = create<CartState>((set, get) => ({
   itemsMap: {},
   hydrated: false,
@@ -169,45 +208,64 @@ export const useCartStore = create<CartState>((set, get) => ({
   addItem: (item, quantity = 1) => {
     const nextMap = mergeItemIntoMap(get().itemsMap, item, quantity);
     persistMap(nextMap);
-    set({ itemsMap: nextMap });
+    set({ itemsMap: nextMap, buyNowMap: null });
   },
 
-  removeItem: (productPublicId, variantPublicId) => {
+  removeItem: (productPublicId, variantPublicId, scope = "cart") => {
+    const state = get();
     const key = getItemKey(productPublicId, variantPublicId);
-    const { [key]: _removed, ...nextMap } = get().itemsMap;
-    persistMap(nextMap);
-    set({ itemsMap: nextMap });
+    const { map: sourceMap, persist } = getLineMutationTarget(state, scope);
+    const nextMap = { ...sourceMap };
+    delete nextMap[key];
+    if (persist) {
+      persistMap(nextMap);
+      set({ itemsMap: nextMap });
+    } else {
+      set({ buyNowMap: nextMap });
+    }
   },
 
-  increment: (productPublicId, variantPublicId) => {
+  increment: (productPublicId, variantPublicId, scope = "cart") => {
+    const state = get();
     const key = getItemKey(productPublicId, variantPublicId);
-    const existing = get().itemsMap[key];
+    const { map: sourceMap, persist } = getLineMutationTarget(state, scope);
+    const existing = sourceMap[key];
     if (!existing) return;
     const cap = existing.max_quantity ?? Number.MAX_SAFE_INTEGER;
     if (existing.quantity >= cap) return;
     const nextMap = {
-      ...get().itemsMap,
+      ...sourceMap,
       [key]: { ...existing, quantity: existing.quantity + 1 },
     };
-    persistMap(nextMap);
-    set({ itemsMap: nextMap });
+    if (persist) {
+      persistMap(nextMap);
+      set({ itemsMap: nextMap });
+    } else {
+      set({ buyNowMap: nextMap });
+    }
   },
 
-  decrement: (productPublicId, variantPublicId) => {
+  decrement: (productPublicId, variantPublicId, scope = "cart") => {
+    const state = get();
     const key = getItemKey(productPublicId, variantPublicId);
-    const existing = get().itemsMap[key];
+    const { map: sourceMap, persist } = getLineMutationTarget(state, scope);
+    const existing = sourceMap[key];
     if (!existing || existing.quantity <= 1) return;
     const nextMap = {
-      ...get().itemsMap,
+      ...sourceMap,
       [key]: { ...existing, quantity: existing.quantity - 1 },
     };
-    persistMap(nextMap);
-    set({ itemsMap: nextMap });
+    if (persist) {
+      persistMap(nextMap);
+      set({ itemsMap: nextMap });
+    } else {
+      set({ buyNowMap: nextMap });
+    }
   },
 
   clear: () => {
     persistMap({});
-    set({ itemsMap: {} });
+    set({ itemsMap: {}, buyNowMap: null });
   },
 
   startBuyNow: (item, quantity = 1) => {
@@ -250,6 +308,42 @@ export const useCartStore = create<CartState>((set, get) => ({
     } else {
       persistMap(nextMap);
       set({ itemsMap: nextMap });
+    }
+  },
+
+  setLineQuantity: (productPublicId, variantPublicId, quantity, scope = "cart", patch) => {
+    if (quantity <= 0) {
+      get().removeItem(productPublicId, variantPublicId, scope);
+      return;
+    }
+    const state = get();
+    const key = getItemKey(productPublicId, variantPublicId);
+    const { map: sourceMap, persist } = getLineMutationTarget(state, scope);
+    const existing = sourceMap[key];
+    if (!existing) return;
+
+    const cap =
+      patch?.max_quantity ?? existing.max_quantity ?? Number.MAX_SAFE_INTEGER;
+    const q = clampToMax(quantity, cap);
+    if (q <= 0) {
+      get().removeItem(productPublicId, variantPublicId, scope);
+      return;
+    }
+
+    let nextItem: CartItem = { ...existing, quantity: q };
+    if (patch?.unsetMaxQuantity) {
+      const { max_quantity: _drop, ...rest } = nextItem;
+      nextItem = { ...rest, quantity: q };
+    } else if (patch?.max_quantity !== undefined) {
+      nextItem = { ...nextItem, max_quantity: patch.max_quantity };
+    }
+
+    const nextMap = { ...sourceMap, [key]: nextItem };
+    if (persist) {
+      persistMap(nextMap);
+      set({ itemsMap: nextMap });
+    } else {
+      set({ buyNowMap: nextMap });
     }
   },
 }));

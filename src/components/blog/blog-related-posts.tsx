@@ -1,0 +1,50 @@
+import Image from "next/image";
+
+import { Link } from "@/i18n/routing";
+import type { BlogPostSerializable } from "@/lib/blog-data";
+import { storefrontImageUnoptimized } from "@/lib/storefront-image";
+
+type BlogRelatedPostsProps = {
+  posts: BlogPostSerializable[];
+  heading: string;
+};
+
+export function BlogRelatedPosts({ posts, heading }: BlogRelatedPostsProps) {
+  if (posts.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="mt-16 border-t border-neutral-200 pt-12" aria-labelledby="blog-related-heading">
+      <h2 id="blog-related-heading" className="text-lg font-semibold tracking-tight text-text md:text-xl">
+        {heading}
+      </h2>
+      <ul className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {posts.map((post) => (
+          <li key={post.slug}>
+            <Link
+              href={`/blog/${post.slug}`}
+              className="group block overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-sm transition-shadow hover:shadow-md"
+            >
+              <div className="relative aspect-[4/3] bg-neutral-100">
+                <Image
+                  src={post.imageUrl}
+                  alt={post.title}
+                  fill
+                  className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                  sizes="(max-width: 640px) 100vw, 33vw"
+                  unoptimized={storefrontImageUnoptimized(post.imageUrl)}
+                />
+              </div>
+              <div className="p-4">
+                <p className="line-clamp-2 text-sm font-semibold leading-snug text-text group-hover:text-primary">
+                  {post.title}
+                </p>
+              </div>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}

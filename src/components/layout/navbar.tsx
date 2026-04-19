@@ -1,4 +1,3 @@
-import { ImageIcon } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
 import { AccountNavLink } from "@/components/common/account-nav-link";
@@ -66,14 +65,9 @@ export async function Navbar() {
 
           <Link
             href="/"
-            className="hidden shrink-0 items-center gap-3 leading-tight md:inline-flex"
+            className="hidden shrink-0 items-center leading-tight md:inline-flex"
             aria-label={store.store_name}
           >
-            <ImageIcon
-              className="size-11 shrink-0 text-white/45"
-              strokeWidth={1.25}
-              aria-hidden
-            />
             <span className="flex flex-col justify-center gap-0.5">
               <span className="text-sm font-extrabold uppercase tracking-wide leading-tight text-white">{brandTop}</span>
               {brandBottom ? (

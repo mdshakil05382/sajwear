@@ -5,10 +5,13 @@ import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useCart } from "@/hooks/useCart";
+import { formatPaperbaseError, stockValidationErrors } from "@/lib/api/paperbase-errors";
 import { apiFetchJson } from "@/lib/client/api";
+import { reconcileCheckoutStock } from "@/lib/client/reconcile-checkout-stock";
 import { formatMoney, parseDecimal } from "@/lib/format";
 import { resolveStorefrontImageUrl, storefrontImageUnoptimized } from "@/lib/storefront-image";
 import { triggerInitiateCheckout } from "@/lib/tracker";
+import { getCheckoutCartItems, useCartStore } from "@/lib/store/cart-store";
 import { cn } from "@/lib/utils";
 import { Link, useRouter, type Locale } from "@/i18n/routing";
 import type { CartItem } from "@/types/cart";
@@ -58,7 +61,7 @@ export function CheckoutShippingView() {
   const locale = useLocale() as Locale;
   const router = useRouter();
 
-  const { checkoutItems, checkoutSubtotal, isBuyNow, hydrated, increment, decrement, removeItem, clearBuyNow } =
+  const { checkoutItems, checkoutSubtotal, hydrated, increment, decrement, removeItem, clearBuyNow } =
     useCart();
   const [zones, setZones] = useState<Array<{ zone_public_id: string; name: string }>>([]);
   const [selectedZone, setSelectedZone] = useState("");
@@ -67,6 +70,7 @@ export function CheckoutShippingView() {
   const [finalTotal, setFinalTotal] = useState("0.00");
   const [loading, setLoading] = useState(false);
   const [errorText, setErrorText] = useState<string | null>(null);
+  const [stockAdjustedHint, setStockAdjustedHint] = useState<string | null>(null);
 
   const cartItems = useMemo(
     () =>
@@ -140,8 +144,6 @@ export function CheckoutShippingView() {
     };
   }, [selectedZone]);
 
-  const cartItemsRef = useRef(cartItems);
-  cartItemsRef.current = cartItems;
   const selectedMethodRef = useRef(selectedMethod);
   selectedMethodRef.current = selectedMethod;
   const selectedZoneRef = useRef(selectedZone);
@@ -150,14 +152,42 @@ export function CheckoutShippingView() {
   useEffect(() => {
     let mounted = true;
     const tid = window.setTimeout(() => {
-      const items = cartItemsRef.current;
-      const zone = selectedZoneRef.current;
-      const method = selectedMethodRef.current;
-      if (!items.length || !zone) {
-        return;
-      }
       void (async () => {
+        const zone = selectedZoneRef.current;
+        if (!zone) {
+          return;
+        }
+
+        const { setLineQuantity } = useCartStore.getState();
+        const scope = useCartStore.getState().buyNowMap != null ? "checkout" : "cart";
+        const snapshot = getCheckoutCartItems();
+        if (!snapshot.length) {
+          if (mounted) {
+            setShippingCost("0.00");
+            setFinalTotal("0.00");
+          }
+          return;
+        }
+
         try {
+          const changed = await reconcileCheckoutStock(snapshot, { setLineQuantity, scope });
+          if (!mounted) return;
+          if (changed) {
+            setStockAdjustedHint(t("stockAdjustedForCheckout"));
+          }
+
+          const items = getCheckoutCartItems().map((item) => ({
+            product_public_id: item.product_public_id,
+            variant_public_id: item.variant_public_id,
+            quantity: item.quantity,
+          }));
+          if (!items.length) {
+            setShippingCost("0.00");
+            setFinalTotal("0.00");
+            setErrorText(null);
+            return;
+          }
+
           const response = await apiFetchJson<{
             shipping_cost: string;
             final_total: string;
@@ -165,16 +195,20 @@ export function CheckoutShippingView() {
             method: "POST",
             body: JSON.stringify({
               items,
-              shipping_zone_public_id: zone || undefined,
-              shipping_method_public_id: method || undefined,
+              shipping_zone_public_id: zone,
+              shipping_method_public_id: selectedMethodRef.current || undefined,
             }),
           });
           if (!mounted) return;
           setShippingCost(response.shipping_cost);
           setFinalTotal(response.final_total);
-        } catch {
+          setErrorText(null);
+        } catch (err) {
           if (!mounted) return;
-          setErrorText("Failed to calculate pricing.");
+          const stockErrs = stockValidationErrors(err);
+          setErrorText(
+            stockErrs.length ? stockErrs.join(" | ") : formatPaperbaseError(err),
+          );
         }
       })();
     }, 320);
@@ -182,7 +216,7 @@ export function CheckoutShippingView() {
       mounted = false;
       window.clearTimeout(tid);
     };
-  }, [cartItems, selectedMethod, selectedZone]);
+  }, [cartItems, selectedMethod, selectedZone, t]);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -294,8 +328,8 @@ export function CheckoutShippingView() {
             {checkoutItems.map((item) => {
               const productHref = item.product_slug ? (`/products/${item.product_slug}` as const) : null;
               const imageSrc = resolveStorefrontImageUrl(item.image_url);
-              // In Buy Now mode quantities are fixed; remove button is also hidden
-              const showRemoveLine = !isBuyNow && checkoutItems.length > 1;
+              // Show remove when more than one line (including ephemeral Buy Now checkout).
+              const showRemoveLine = checkoutItems.length > 1;
               return (
                 <li
                   key={item.line_key ?? `${item.product_public_id}-${item.variant_public_id ?? "default"}`}
@@ -334,24 +368,25 @@ export function CheckoutShippingView() {
                         <QuantityStepper
                           layout="segmented"
                           quantity={item.quantity}
-                          onIncrement={() => increment(item.product_public_id, item.variant_public_id)}
-                          onDecrement={() => decrement(item.product_public_id, item.variant_public_id)}
+                          onIncrement={() =>
+                            increment(item.product_public_id, item.variant_public_id, "checkout")
+                          }
+                          onDecrement={() =>
+                            decrement(item.product_public_id, item.variant_public_id, "checkout")
+                          }
                           increaseLabel={
-                            isBuyNow
+                            item.max_quantity != null && item.quantity >= item.max_quantity
                               ? productT("increaseQuantityDisabledMax")
-                              : item.max_quantity != null && item.quantity >= item.max_quantity
-                                ? productT("increaseQuantityDisabledMax")
-                                : productT("increaseQuantity")
+                              : productT("increaseQuantity")
                           }
                           decreaseLabel={
-                            isBuyNow || item.quantity <= 1
+                            item.quantity <= 1
                               ? productT("decreaseQuantityDisabledMin")
                               : productT("decreaseQuantity")
                           }
-                          decrementDisabled={isBuyNow || item.quantity <= 1}
+                          decrementDisabled={item.quantity <= 1}
                           incrementDisabled={
-                            isBuyNow ||
-                            (item.max_quantity != null && item.quantity >= item.max_quantity)
+                            item.max_quantity != null && item.quantity >= item.max_quantity
                           }
                         />
                       </div>
@@ -360,7 +395,9 @@ export function CheckoutShippingView() {
                       <div className="shrink-0 self-start pt-0.5">
                         <button
                           type="button"
-                          onClick={() => removeItem(item.product_public_id, item.variant_public_id)}
+                          onClick={() =>
+                            removeItem(item.product_public_id, item.variant_public_id, "checkout")
+                          }
                           className="text-xs font-medium text-neutral-500 underline decoration-neutral-300 underline-offset-2 transition-colors hover:text-primary"
                         >
                           {tCart("remove")}
@@ -386,6 +423,12 @@ export function CheckoutShippingView() {
           >
             {orderTotalRows}
           </dl>
+          {stockAdjustedHint ? (
+            <p className="mt-3 max-lg:hidden shrink-0 text-xs font-medium text-amber-800">{stockAdjustedHint}</p>
+          ) : null}
+          {errorText ? (
+            <p className="mt-2 max-lg:hidden shrink-0 text-sm text-red-600">{errorText}</p>
+          ) : null}
           </aside>
         </div>
 
@@ -545,6 +588,9 @@ export function CheckoutShippingView() {
               <dl className="space-y-2.5 text-sm">{orderTotalRows}</dl>
             </div>
 
+            {stockAdjustedHint ? (
+              <p className="shrink-0 text-xs font-medium text-amber-800">{stockAdjustedHint}</p>
+            ) : null}
             {errorText ? <p className="shrink-0 text-sm text-red-600">{errorText}</p> : null}
 
             <button

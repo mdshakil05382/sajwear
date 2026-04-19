@@ -1,23 +1,29 @@
 "use client";
 
-import { useLocale, useTranslations } from "next-intl";
+import { Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
 import { apiFetchJson } from "@/lib/client/api";
 import { formatPaperbaseError, stockValidationErrors } from "@/lib/api/paperbase-errors";
-import { Link, useRouter, type Locale } from "@/i18n/routing";
-import { formatMoney } from "@/lib/format";
+import { createMfsOrder } from "@/lib/client/checkout-mfs-api";
+import { Link, useRouter } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
 import { triggerPurchase } from "@/lib/tracker";
 import type { PaperbaseOrderCreateResponse } from "@/types/paperbase";
 import type { ProductPrepaymentType } from "@/types/product";
 
-import { writeStoredOrder } from "@/components/orders/order-storage-keys";
+import { readStoredOrder, writeStoredOrder } from "@/components/orders/order-storage-keys";
 
 import { CheckoutBreadcrumbs } from "./checkout-breadcrumbs";
+import { CheckoutOrderSuccess } from "./checkout-order-success";
 import {
   CHECKOUT_DRAFT_STORAGE_KEY,
   CHECKOUT_PREPAYMENT_STORAGE_KEY,
+  clearCheckoutSuccessHandoffMemory,
+  peekCheckoutSuccessHandoff,
+  readMfsPendingOrderPublicId,
+  writeMfsPendingOrderPublicId,
 } from "./checkout-storage-keys";
 
 function readStoredPrepayment(): ProductPrepaymentType {
@@ -46,7 +52,6 @@ type PaymentMethod = "cod" | "mfs";
 
 export function CheckoutPaymentStub() {
   const t = useTranslations("checkout");
-  const locale = useLocale() as Locale;
   const router = useRouter();
 
   const [resolvedPrepayment, setResolvedPrepayment] = useState<ProductPrepaymentType>("none");
@@ -57,7 +62,7 @@ export function CheckoutPaymentStub() {
   const [errorText, setErrorText] = useState<string | null>(null);
   const [placedOrder, setPlacedOrder] = useState<PaperbaseOrderCreateResponse | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cod");
-  const [confirmedPaymentMethod, setConfirmedPaymentMethod] = useState<PaymentMethod | null>(null);
+  const [mfsSuccessProvider, setMfsSuccessProvider] = useState<"bkash" | "nagad" | null>(null);
 
   useEffect(() => {
     const stored = readStoredPrepayment();
@@ -66,6 +71,15 @@ export function CheckoutPaymentStub() {
   }, []);
 
   useEffect(() => {
+    const handoff = peekCheckoutSuccessHandoff();
+    if (handoff) {
+      setPlacedOrder(handoff.order);
+      setPaymentMethod(handoff.payment_method);
+      const p = handoff.mfs_provider;
+      setMfsSuccessProvider(p === "bkash" || p === "nagad" ? p : null);
+      return;
+    }
+
     const raw = window.sessionStorage.getItem(CHECKOUT_DRAFT_STORAGE_KEY);
     if (!raw) {
       return;
@@ -76,6 +90,12 @@ export function CheckoutPaymentStub() {
       setDraft(null);
     }
   }, []);
+
+  useEffect(() => {
+    if (placedOrder) {
+      clearCheckoutSuccessHandoffMemory();
+    }
+  }, [placedOrder]);
 
   async function handlePlaceOrder() {
     if (!draft) {
@@ -92,14 +112,12 @@ export function CheckoutPaymentStub() {
       window.sessionStorage.removeItem(CHECKOUT_DRAFT_STORAGE_KEY);
       window.sessionStorage.removeItem(CHECKOUT_PREPAYMENT_STORAGE_KEY);
       if (order.requires_payment === true) {
-        // The storefront API has no GET /orders/<id>/ — hand the receipt off
-        // via sessionStorage so the payment page can drive its UI from it.
         writeStoredOrder(order);
         router.push(`/orders/${order.public_id}/payment`);
         return;
       }
-      setConfirmedPaymentMethod(paymentMethod);
       setPlacedOrder(order);
+      setMfsSuccessProvider(null);
       triggerPurchase({
         order_number: order.order_number,
         total: order.total,
@@ -114,51 +132,88 @@ export function CheckoutPaymentStub() {
     }
   }
 
+  const prepayWithMfs = requiresPrepayment && paymentMethod === "mfs";
+
+  async function handleContinueToMfsPayment() {
+    if (loading) return;
+    if (!draft) {
+      setErrorText("Missing checkout details. Please go back to shipping.");
+      return;
+    }
+    setLoading(true);
+    setErrorText(null);
+    try {
+      const pendingId = readMfsPendingOrderPublicId();
+      if (pendingId) {
+        const existing = readStoredOrder(pendingId);
+        const ps = existing?.payment_status ?? "none";
+        if (
+          existing &&
+          existing.requires_payment === true &&
+          ps === "none" &&
+          existing.status === "payment_pending"
+        ) {
+          router.push(
+            `/checkout/payment/mfs?orderId=${encodeURIComponent(pendingId)}`,
+          );
+          return;
+        }
+      }
+
+      const order = await createMfsOrder(draft);
+      window.sessionStorage.removeItem(CHECKOUT_DRAFT_STORAGE_KEY);
+      window.sessionStorage.removeItem(CHECKOUT_PREPAYMENT_STORAGE_KEY);
+
+      if (order.requires_payment !== true) {
+        writeStoredOrder(order);
+        setPlacedOrder(order);
+        setMfsSuccessProvider(null);
+        triggerPurchase({
+          order_number: order.order_number,
+          total: order.total,
+          items: order.items,
+          payment_method: "mfs",
+        });
+        return;
+      }
+
+      writeStoredOrder(order);
+      writeMfsPendingOrderPublicId(order.public_id);
+      router.push(`/checkout/payment/mfs?orderId=${encodeURIComponent(order.public_id)}`);
+    } catch (error) {
+      const stockErrors = stockValidationErrors(error);
+      setErrorText(stockErrors.length ? stockErrors.join(" | ") : formatPaperbaseError(error));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handlePrimaryClick() {
+    if (prepayWithMfs) {
+      void handleContinueToMfsPayment();
+      return;
+    }
+    void handlePlaceOrder();
+  }
+
   return (
     <div className="bg-white pb-12 pt-6 md:pb-16 md:pt-8">
       <CheckoutBreadcrumbs step="payment" />
 
-      <div className="mx-auto max-w-xl rounded-lg border border-neutral-200/60 bg-white p-8 shadow-sm md:p-10">
+      <div
+        className={cn(
+          "mx-auto max-w-xl bg-white",
+          placedOrder
+            ? "px-4 pb-10 pt-2 md:px-6"
+            : "rounded-lg border border-neutral-200/60 p-8 shadow-sm md:p-10",
+        )}
+      >
         {placedOrder ? (
-          <>
-            <h1 className="text-xl font-semibold text-text">{t("orderPlacedTitle")}</h1>
-            <dl className="mt-4 space-y-3 text-sm leading-relaxed text-neutral-600">
-              <div>
-                <dt className="font-medium text-neutral-950">{t("orderNumberLabel")}</dt>
-                <dd className="mt-0.5">{placedOrder.order_number}</dd>
-              </div>
-              <div>
-                <dt className="font-medium text-neutral-950">{t("orderConfirmCustomerName")}</dt>
-                <dd className="mt-0.5">{placedOrder.customer_name}</dd>
-              </div>
-              <div>
-                <dt className="font-medium text-neutral-950">{t("orderConfirmPhone")}</dt>
-                <dd className="mt-0.5">{placedOrder.phone}</dd>
-              </div>
-              <div>
-                <dt className="font-medium text-neutral-950">{t("orderConfirmAddress")}</dt>
-                <dd className="mt-0.5 whitespace-pre-wrap">{placedOrder.shipping_address}</dd>
-              </div>
-              {confirmedPaymentMethod ? (
-                <div>
-                  <dt className="font-medium text-neutral-950">{t("orderConfirmPaymentMethod")}</dt>
-                  <dd className="mt-0.5">
-                    {confirmedPaymentMethod === "cod" ? t("paymentMethodCod") : t("paymentMethodMfs")}
-                  </dd>
-                </div>
-              ) : null}
-              <div>
-                <dt className="font-medium text-neutral-950">{t("total")}</dt>
-                <dd className="mt-0.5 tabular-nums text-neutral-950">{formatMoney(placedOrder.total, locale)}</dd>
-              </div>
-            </dl>
-            <Link
-              href="/"
-              className="mt-8 inline-flex rounded-md bg-neutral-950 px-5 py-2.5 text-sm font-semibold text-white hover:bg-neutral-900"
-            >
-              {t("continueShoppingAfterOrder")}
-            </Link>
-          </>
+          <CheckoutOrderSuccess
+            order={placedOrder}
+            paymentMethod={paymentMethod}
+            mfsProvider={mfsSuccessProvider}
+          />
         ) : (
           <>
             <h1 className="text-xl font-semibold text-text">{t("paymentStubHeading")}</h1>
@@ -266,6 +321,7 @@ export function CheckoutPaymentStub() {
             </fieldset>
 
             {errorText ? <p className="mt-4 text-sm text-red-600">{errorText}</p> : null}
+
             <div className="mt-8 flex w-full flex-nowrap items-stretch gap-2 sm:gap-3">
               <Link
                 href="/checkout"
@@ -275,11 +331,22 @@ export function CheckoutPaymentStub() {
               </Link>
               <button
                 type="button"
-                onClick={handlePlaceOrder}
+                onClick={handlePrimaryClick}
                 disabled={loading}
-                className="inline-flex min-h-12 min-w-0 flex-1 items-center justify-center whitespace-nowrap rounded-md bg-primary px-3 py-2.5 text-center text-sm font-semibold text-white transition-colors hover:bg-primary/90 disabled:opacity-50 sm:flex-none sm:px-5 md:min-h-0"
+                className="inline-flex min-h-12 min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-md bg-primary px-3 py-2.5 text-center text-sm font-semibold text-white transition-colors hover:bg-primary/90 disabled:opacity-50 sm:flex-none sm:px-5 md:min-h-0"
               >
-                {loading ? t("placingOrder") : t("placeOrder")}
+                {loading ? (
+                  <>
+                    <Loader2 className="size-5 shrink-0 animate-spin" strokeWidth={2.25} aria-hidden />
+                    <span>
+                      {prepayWithMfs ? t("continuingToPayment") : t("placingOrder")}
+                    </span>
+                  </>
+                ) : prepayWithMfs ? (
+                  t("continueToPaymentPrepay")
+                ) : (
+                  t("placeOrder")
+                )}
               </button>
             </div>
 
