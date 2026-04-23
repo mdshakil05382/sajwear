@@ -6,6 +6,7 @@ import { getMessages, getTranslations, setRequestLocale } from "next-intl/server
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 
+import { BlogPromoPopup } from "@/components/blog/blog-promo-popup";
 import { Footer } from "@/components/layout/footer";
 import { Navbar } from "@/components/layout/navbar";
 import { PaperbaseBrowserApiOriginBridge } from "@/components/paperbase/paperbase-browser-api-origin-bridge";
@@ -67,18 +68,19 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
   return (
     <NextIntlClientProvider locale={activeLocale} messages={messages}>
       <PaperbaseBrowserApiOriginBridge />
-      <Script src={trackerSrc} strategy="afterInteractive" />
       <Script
         id="paperbase-publishable-key"
-        strategy="afterInteractive"
+        strategy="beforeInteractive"
         dangerouslySetInnerHTML={{
           __html: `window.PAPERBASE_PUBLISHABLE_KEY = ${JSON.stringify(publishableKey)};`,
         }}
       />
+      {trackerSrc ? <Script src={trackerSrc} strategy="afterInteractive" /> : null}
       <div
         lang={activeLocale}
         className={`${poppins.variable} flex min-h-screen flex-col bg-white font-sans-en`}
       >
+        <BlogPromoPopup />
         <Navbar />
         <main className="flex min-h-0 flex-1 flex-col">{children}</main>
         <Footer />

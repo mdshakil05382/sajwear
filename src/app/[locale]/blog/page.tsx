@@ -39,9 +39,9 @@ export default async function BlogPage({ params }: PageProps) {
 
   const [t, posts, featuredPosts, latestPosts] = await Promise.all([
     getTranslations({ locale, namespace: "blog" }),
-    Promise.resolve(getAllPosts()),
-    Promise.resolve(getFeaturedPosts()),
-    Promise.resolve(getLatestPosts()),
+    getAllPosts(),
+    getFeaturedPosts(),
+    getLatestPosts(),
   ]);
 
   return (

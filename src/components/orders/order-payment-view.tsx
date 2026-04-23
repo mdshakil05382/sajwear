@@ -127,10 +127,13 @@ export function OrderPaymentView({ publicId }: OrderPaymentViewProps) {
     }
     purchaseFiredRef.current = true;
     triggerPurchase({
-      order_number: order.order_number,
-      total: order.total,
-      items: order.items,
-      payment_method: "prepayment",
+      order_id: order.public_id,
+      value: Number(order.total),
+      items: order.items.map((line) => ({
+        id: line.product_name,
+        quantity: line.quantity,
+        item_price: Number(line.unit_price),
+      })),
     });
   }, [order]);
 

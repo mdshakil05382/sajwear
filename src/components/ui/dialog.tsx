@@ -26,10 +26,14 @@ const DialogOverlay = React.forwardRef<
 ))
 DialogOverlay.displayName = Dialog.Overlay.displayName
 
+type DialogContentProps = React.ComponentPropsWithoutRef<typeof Dialog.Content> & {
+  showCloseButton?: boolean
+}
+
 const DialogContent = React.forwardRef<
   React.ComponentRef<typeof Dialog.Content>,
-  React.ComponentPropsWithoutRef<typeof Dialog.Content>
->(({ className, children, ...props }, ref) => (
+  DialogContentProps
+>(({ className, children, showCloseButton = true, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
     <Dialog.Content
@@ -51,10 +55,12 @@ const DialogContent = React.forwardRef<
       {...props}
     >
       {children}
-      <Dialog.Close className="absolute right-4 top-4 rounded-full p-1 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
-        <X className="size-4" strokeWidth={2} aria-hidden />
-        <span className="sr-only">Close</span>
-      </Dialog.Close>
+      {showCloseButton ? (
+        <Dialog.Close className="absolute right-4 top-4 rounded-full p-1 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
+          <X className="size-4" strokeWidth={2} aria-hidden />
+          <span className="sr-only">Close</span>
+        </Dialog.Close>
+      ) : null}
     </Dialog.Content>
   </DialogPortal>
 ))

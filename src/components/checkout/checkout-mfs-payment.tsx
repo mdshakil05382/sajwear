@@ -185,10 +185,16 @@ export function CheckoutMfsPayment() {
       clearMfsPendingOrderPublicId();
       writeStoredOrder(next);
       triggerPurchase({
-        order_number: next.order_number,
-        total: next.total,
-        items: next.items,
-        payment_method: "mfs",
+        order_id: next.public_id,
+        value: Number(next.total),
+        items: next.items.map((line) => ({
+          id: line.product_name,
+          quantity: line.quantity,
+          item_price: Number(line.unit_price),
+        })),
+        customer: {
+          phone: pn.replace(/\s/g, ""),
+        },
       });
       writeCheckoutSuccessMeta(orderPublicId, {
         payment_method: "mfs",

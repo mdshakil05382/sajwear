@@ -1,6 +1,8 @@
 type TrackerShape = {
+  viewContent: (product: unknown) => void;
+  addToCart: (product: unknown) => void;
   initiateCheckout: (cart: unknown) => void;
-  purchase?: (payload: unknown) => void;
+  purchase: (payload: unknown) => void;
 };
 
 declare global {
@@ -19,7 +21,17 @@ export function triggerInitiateCheckout(cart: unknown) {
   window.tracker?.initiateCheckout(cart);
 }
 
+export function triggerViewContent(product: unknown) {
+  if (typeof window === "undefined") return;
+  window.tracker?.viewContent(product);
+}
+
+export function triggerAddToCart(product: unknown) {
+  if (typeof window === "undefined") return;
+  window.tracker?.addToCart(product);
+}
+
 export function triggerPurchase(payload: unknown) {
   if (typeof window === "undefined") return;
-  window.tracker?.purchase?.(payload);
+  window.tracker?.purchase(payload);
 }

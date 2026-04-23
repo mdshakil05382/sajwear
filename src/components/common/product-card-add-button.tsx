@@ -5,7 +5,6 @@ import type { Product } from "@/types/product";
 
 type ProductCardAddButtonProps = {
   product: Product;
-  productName: string;
   variant?: "default" | "card";
 };
 
@@ -14,8 +13,6 @@ type ProductCardAddButtonProps = {
  * Always opens the variant selection modal — cart items are never added without
  * a resolved variant_public_id.
  */
-export function ProductCardAddButton({ product, productName, variant = "default" }: ProductCardAddButtonProps) {
-  return (
-    <ProductCardVariantModal product={product} productName={productName} variant={variant} />
-  );
+export function ProductCardAddButton({ product, variant = "default" }: ProductCardAddButtonProps) {
+  return <ProductCardVariantModal product={product} variant={variant} />;
 }

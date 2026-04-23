@@ -323,3 +323,28 @@ export type PaperbaseSupportTicketResponse = {
   created_at: string;
   updated_at: string;
 };
+
+export type PaperbaseBlogTag = {
+  public_id: string;
+  name: string;
+  slug: string;
+};
+
+export type PaperbaseBlogListItem = {
+  public_id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  featured_image_url: string | null;
+  meta_title: string;
+  meta_description: string;
+  tags: PaperbaseBlogTag[];
+  is_featured: boolean;
+  views: number;
+  published_at: string;
+};
+
+export type PaperbaseBlogDetail = PaperbaseBlogListItem & {
+  content: string;
+  author_name: string;
+};

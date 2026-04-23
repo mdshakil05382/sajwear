@@ -86,8 +86,15 @@ export function CheckoutShippingView() {
     if (!hydrated || checkoutItems.length === 0) {
       return;
     }
-    triggerInitiateCheckout(checkoutItems);
-  }, [hydrated, checkoutItems]);
+    triggerInitiateCheckout({
+      value: Number(finalTotal || checkoutSubtotal),
+      items: checkoutItems.map((item) => ({
+        id: item.product_public_id,
+        quantity: item.quantity,
+        item_price: Number(item.price),
+      })),
+    });
+  }, [hydrated, checkoutItems, checkoutSubtotal, finalTotal]);
 
   useEffect(() => {
     let mounted = true;

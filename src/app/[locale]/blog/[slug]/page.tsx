@@ -26,8 +26,9 @@ type PageProps = {
   params: Promise<{ locale: string; slug: string }>;
 };
 
-export function generateStaticParams(): Array<{ locale: string; slug: string }> {
-  return routing.locales.flatMap((locale) => getAllSlugs().map((slug) => ({ locale, slug })));
+export async function generateStaticParams(): Promise<Array<{ locale: string; slug: string }>> {
+  const slugs = await getAllSlugs();
+  return routing.locales.flatMap((locale) => slugs.map((slug) => ({ locale, slug })));
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -36,7 +37,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return {};
   }
 
-  const post = getPostBySlug(slug);
+  const post = await getPostBySlug(slug);
   if (!post) {
     return {};
   }
@@ -57,7 +58,7 @@ export default async function BlogArticlePage({ params }: PageProps) {
 
   setRequestLocale(locale);
 
-  const post = getPostBySlug(slug);
+  const post = await getPostBySlug(slug);
   if (!post) {
     notFound();
   }
@@ -65,11 +66,11 @@ export default async function BlogArticlePage({ params }: PageProps) {
   const [t, blocks, { prev, next }, related] = await Promise.all([
     getTranslations({ locale, namespace: "blog" }),
     Promise.resolve(getArticleBlocks(post)),
-    Promise.resolve(getPrevNextPosts(slug)),
-    Promise.resolve(getRelatedPosts(post.category, slug, 3)),
+    getPrevNextPosts(slug),
+    getRelatedPosts(post.category, slug, 3),
   ]);
 
-  const featuredPosts = getFeaturedPosts().filter((p) => p.slug !== slug);
+  const featuredPosts = (await getFeaturedPosts()).filter((p) => p.slug !== slug);
 
   const authorName = post.authorName ?? t("defaultAuthor");
   const dateLabel = formatBlogDateCompact(post.publishedAt, locale);
@@ -99,17 +100,21 @@ export default async function BlogArticlePage({ params }: PageProps) {
               <p className="mt-4 text-pretty text-base leading-relaxed text-neutral-600 md:text-lg">{post.excerpt}</p>
             </header>
 
-            <div className="relative mt-8 aspect-[21/9] w-full overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100">
-              <Image
-                src={post.imageUrl}
-                alt={post.title}
-                fill
-                priority
-                sizes="(max-width: 1024px) 100vw, 960px"
-                className="object-cover"
-                unoptimized={storefrontImageUnoptimized(post.imageUrl)}
-              />
-            </div>
+            {post.imageUrl ? (
+              <div className="mt-8 w-full overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100">
+                <div className="relative h-[260px] w-full sm:h-[340px] md:h-[420px] lg:h-[520px]">
+                  <Image
+                    src={post.imageUrl}
+                    alt={post.title}
+                    fill
+                    priority
+                    sizes="(max-width: 1024px) 100vw, 960px"
+                    className="object-contain"
+                    unoptimized={storefrontImageUnoptimized(post.imageUrl)}
+                  />
+                </div>
+              </div>
+            ) : null}
 
             <div className="mt-4 flex flex-wrap gap-2">
               {tags.map((tag) => (

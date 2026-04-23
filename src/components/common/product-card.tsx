@@ -60,7 +60,7 @@ export async function ProductCard({ product, locale: localeProp, priority }: Pro
       </div>
 
       <div className="mt-auto px-4 pb-4">
-        <ProductCardAddButton product={product} productName={product.name} variant="card" />
+        <ProductCardAddButton product={product} variant="card" />
       </div>
     </article>
   );

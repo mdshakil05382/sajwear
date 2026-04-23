@@ -143,10 +143,20 @@ export function CheckoutPaymentStub() {
       writeStoredOrder(order);
       writeCheckoutSuccessMeta(order.public_id, { payment_method: paymentMethod });
       triggerPurchase({
-        order_number: order.order_number,
-        total: order.total,
-        items: order.items,
-        payment_method: paymentMethod,
+        order_id: order.public_id,
+        value: Number(order.total),
+        items: order.items.map((line) => ({
+          id: line.product_name,
+          quantity: line.quantity,
+          item_price: Number(line.unit_price),
+        })),
+        customer: {
+          email: draft.email || "",
+          phone: draft.phone || "",
+          first_name: draft.shipping_name.split(" ")[0] || "",
+          last_name: draft.shipping_name.split(" ").slice(1).join(" ") || "",
+          city: draft.district || "",
+        },
       });
       router.replace(`/success/${order.public_id}`);
     } catch (error) {
@@ -191,10 +201,20 @@ export function CheckoutPaymentStub() {
         writeStoredOrder(order);
         writeCheckoutSuccessMeta(order.public_id, { payment_method: "mfs" });
         triggerPurchase({
-          order_number: order.order_number,
-          total: order.total,
-          items: order.items,
-          payment_method: "mfs",
+          order_id: order.public_id,
+          value: Number(order.total),
+          items: order.items.map((line) => ({
+            id: line.product_name,
+            quantity: line.quantity,
+            item_price: Number(line.unit_price),
+          })),
+          customer: {
+            email: draft.email || "",
+            phone: draft.phone || "",
+            first_name: draft.shipping_name.split(" ")[0] || "",
+            last_name: draft.shipping_name.split(" ").slice(1).join(" ") || "",
+            city: draft.district || "",
+          },
         });
         router.replace(`/success/${order.public_id}`);
         return;

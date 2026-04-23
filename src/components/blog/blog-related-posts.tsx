@@ -26,16 +26,18 @@ export function BlogRelatedPosts({ posts, heading }: BlogRelatedPostsProps) {
               href={`/blog/${post.slug}`}
               className="group block overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-sm transition-shadow hover:shadow-md"
             >
-              <div className="relative aspect-[4/3] bg-neutral-100">
-                <Image
-                  src={post.imageUrl}
-                  alt={post.title}
-                  fill
-                  className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-                  sizes="(max-width: 640px) 100vw, 33vw"
-                  unoptimized={storefrontImageUnoptimized(post.imageUrl)}
-                />
-              </div>
+              {post.imageUrl ? (
+                <div className="relative aspect-[4/3] bg-neutral-100">
+                  <Image
+                    src={post.imageUrl}
+                    alt={post.title}
+                    fill
+                    className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                    sizes="(max-width: 640px) 100vw, 33vw"
+                    unoptimized={storefrontImageUnoptimized(post.imageUrl)}
+                  />
+                </div>
+              ) : null}
               <div className="p-4">
                 <p className="line-clamp-2 text-sm font-semibold leading-snug text-text group-hover:text-primary">
                   {post.title}

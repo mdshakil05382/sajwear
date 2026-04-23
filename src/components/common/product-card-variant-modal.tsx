@@ -16,6 +16,7 @@ import {
 import { getProductDetailCached } from "@/lib/client/product-detail-cache";
 import { formatMoney } from "@/lib/format";
 import { resolveStorefrontImageUrl, storefrontImageUnoptimized } from "@/lib/storefront-image";
+import { triggerAddToCart } from "@/lib/tracker";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/hooks/useCart";
 import type { Product, ProductDetail } from "@/types/product";
@@ -23,7 +24,6 @@ import type { Locale } from "@/i18n/routing";
 
 type Props = {
   product: Product;
-  productName: string;
   variant?: "default" | "card";
 };
 
@@ -65,6 +65,10 @@ function VariantPicker({ detail, onAdded }: PickerProps) {
       },
       1,
     );
+    triggerAddToCart({
+      id: detail.public_id,
+      value: Number(selectedVariant.price),
+    });
     openCartPanel();
     onAdded();
   }
@@ -230,7 +234,7 @@ function VariantPickerSkeleton() {
 
 // ─── Public component ──────────────────────────────────────────────────────
 
-export function ProductCardVariantModal({ product, productName, variant = "default" }: Props) {
+export function ProductCardVariantModal({ product, variant = "default" }: Props) {
   const t = useTranslations("variantModal");
   const productT = useTranslations("product");
   const tCard = useTranslations("productCard");

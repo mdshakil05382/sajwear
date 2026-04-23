@@ -204,11 +204,6 @@ export async function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/cart" className="text-sm text-neutral-900 underline-offset-2 hover:underline">
-                  {t("customerCart")}
-                </Link>
-              </li>
-              <li>
                 <Link href="/wishlist" className="text-sm text-neutral-900 underline-offset-2 hover:underline">
                   {t("customerWishlist")}
                 </Link>

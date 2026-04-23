@@ -2,11 +2,12 @@
 
 import { Share2 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 
 import { useVariantSelection } from "@/components/product/product-variant-selection";
 import { useCart } from "@/hooks/useCart";
 import { useRouter } from "@/i18n/routing";
+import { triggerAddToCart, triggerViewContent } from "@/lib/tracker";
 import { cn } from "@/lib/utils";
 
 type ProductDetailBuySectionProps = {
@@ -98,6 +99,10 @@ export function ProductDetailBuySection({
   const handleAdd = () => {
     if (!canPurchase) return;
     addItem(payload(), 1);
+    triggerAddToCart({
+      id: productPublicId,
+      value: Number(effectivePrice),
+    });
     openCartPanel();
   };
 
@@ -121,6 +126,14 @@ export function ProductDetailBuySection({
       /* user dismissed share sheet or clipboard blocked */
     }
   }
+
+  useEffect(() => {
+    if (!productPublicId) return;
+    triggerViewContent({
+      id: productPublicId,
+      value: Number(effectivePrice),
+    });
+  }, [productPublicId, effectivePrice]);
 
   return (
     <div className="space-y-4">

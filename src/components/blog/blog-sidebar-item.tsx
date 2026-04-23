@@ -28,15 +28,17 @@ export function BlogSidebarItem({ post, locale }: BlogSidebarItemWithLocaleProps
   return (
     <Link href={`/blog/${post.slug}`} className="group flex gap-3 rounded-lg border border-transparent p-1.5 transition-colors hover:border-neutral-200 hover:bg-neutral-50/80">
       <div className="relative size-16 shrink-0 overflow-hidden rounded-lg border border-neutral-100 bg-neutral-100">
-        <Image
-          src={post.imageUrl}
-          alt=""
-          role="presentation"
-          fill
-          sizes="64px"
-          className="object-cover"
-          unoptimized={storefrontImageUnoptimized(post.imageUrl)}
-        />
+        {post.imageUrl ? (
+          <Image
+            src={post.imageUrl}
+            alt=""
+            role="presentation"
+            fill
+            sizes="64px"
+            className="object-cover"
+            unoptimized={storefrontImageUnoptimized(post.imageUrl)}
+          />
+        ) : null}
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-[11px] tabular-nums text-neutral-500">{formatDate(post.publishedAt, locale)}</p>

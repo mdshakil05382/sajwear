@@ -8,6 +8,8 @@ import type {
   PaginatedResponse,
   PaperbaseBanner,
   PaperbaseBannerSlot,
+  PaperbaseBlogDetail,
+  PaperbaseBlogListItem,
   PaperbaseCatalogFilters,
   PaperbaseCategory,
   PaperbaseCategoryTreeNode,
@@ -266,4 +268,17 @@ export function createSupportTicketJson(body: PaperbaseSupportTicketRequest) {
 
 export function createSupportTicketMultipart(formData: FormData) {
   return paperbasePost<PaperbaseSupportTicketResponse>("support/tickets/", { formData });
+}
+
+export function listBlogs(query?: { tag?: string }) {
+  return paperbaseGet<PaperbaseBlogListItem[]>("blogs/", {
+    query,
+    next: { revalidate: 120 },
+  });
+}
+
+export function getBlogDetail(publicId: string) {
+  return paperbaseGet<PaperbaseBlogDetail>(`blogs/${publicId}/`, {
+    next: { revalidate: 120 },
+  });
 }
