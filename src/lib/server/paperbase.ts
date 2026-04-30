@@ -307,9 +307,9 @@ export function createSupportTicketMultipart(formData: FormData) {
   return paperbasePost<PaperbaseSupportTicketResponse>("support/tickets/", { formData });
 }
 
-export function listBlogs(query?: { tag?: string }) {
+export function listBlogs(query?: { tag?: string; limit?: number }) {
   return paperbaseGet<PaperbaseBlogListItem[]>("blogs/", {
-    query,
+    query: { limit: 200, ...query },
     next: { revalidate: 120 },
   });
 }

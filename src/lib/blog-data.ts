@@ -1,3 +1,5 @@
+import { cache } from "react";
+
 import { getBlogDetail, listBlogs } from "@/lib/server/paperbase";
 import { PaperbaseApiError } from "@/lib/api/paperbase-errors";
 
@@ -47,16 +49,21 @@ function mapListPost(post: Awaited<ReturnType<typeof listBlogs>>[number]): BlogP
   };
 }
 
-export async function getAllPosts(): Promise<BlogPost[]> {
+export const getAllPostsRaw = cache(async (): Promise<BlogPost[]> => {
   try {
     const posts = await listBlogs();
-    return posts.map(mapListPost).sort(sortByDateDesc);
+    return posts.map(mapListPost);
   } catch (error) {
     if (error instanceof PaperbaseApiError && error.status === 403) {
       return [];
     }
     throw error;
   }
+});
+
+export async function getAllPosts(): Promise<BlogPost[]> {
+  const posts = await getAllPostsRaw();
+  return [...posts].sort(sortByDateDesc);
 }
 
 export async function getPostBySlug(slug: string): Promise<BlogPost | undefined> {

@@ -6,7 +6,7 @@ import { BlogHero } from "@/components/blog/blog-hero";
 import { BlogListing } from "@/components/blog/blog-listing";
 import { PageContainer } from "@/components/layout/page-container";
 import { routing, type Locale } from "@/i18n/routing";
-import { getAllPosts, getFeaturedPosts, getLatestPosts } from "@/lib/blog-data";
+import { getAllPosts } from "@/lib/blog-data";
 
 type PageProps = {
   params: Promise<{ locale: string }>;
@@ -37,12 +37,13 @@ export default async function BlogPage({ params }: PageProps) {
 
   setRequestLocale(locale);
 
-  const [t, posts, featuredPosts, latestPosts] = await Promise.all([
+  const [t, posts] = await Promise.all([
     getTranslations({ locale, namespace: "blog" }),
     getAllPosts(),
-    getFeaturedPosts(),
-    getLatestPosts(),
   ]);
+  const featuredPosts = posts.filter((post) => post.featured === true).slice(0, 4);
+  const featuredSlugs = new Set(featuredPosts.map((post) => post.slug));
+  const latestPosts = posts.filter((post) => !featuredSlugs.has(post.slug)).slice(0, 4);
 
   return (
     <div className="bg-surface pb-12 pt-8 md:pb-16 md:pt-10">
