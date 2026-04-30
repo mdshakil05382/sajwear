@@ -245,11 +245,20 @@ export const getActiveNotifications = cache(() =>
   }),
 );
 
-export const getActivePopup = cache(() =>
-  paperbaseGet<PaperbaseStorePopup | null>("popups/", {
-    next: { revalidate: 120 },
-  }),
-);
+export const getActivePopup = cache(async () => {
+  try {
+    return await paperbaseGet<PaperbaseStorePopup | null>("popups/", {
+      next: { revalidate: 120 },
+    });
+  } catch (error) {
+    // Some backends return plain-text "Not Found" for this optional endpoint.
+    // Treat popup fetch failures as "no active popup" so prerendering never crashes.
+    if (error instanceof PaperbaseApiError) {
+      return null;
+    }
+    throw error;
+  }
+});
 
 export function getShippingZones() {
   return paperbaseGet<PaperbaseShippingZone[]>("shipping/zones/");
