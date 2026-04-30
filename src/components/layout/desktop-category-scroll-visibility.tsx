@@ -83,15 +83,17 @@ export function DesktopCategoryScrollVisibility({ children }: DesktopCategoryScr
   return (
     <div
       className={[
-        "absolute inset-x-0 top-full z-30 hidden md:block",
-        isHidden ? "overflow-hidden" : "overflow-visible",
+        "relative z-30 hidden transition-[height] duration-200 ease-out md:block",
+        isHidden ? "h-0 overflow-hidden" : "h-14 overflow-visible",
       ].join(" ")}
     >
       <div
         className={[
-          "pointer-events-auto bg-header transition-transform duration-200 ease-out will-change-transform",
-          "border-t border-white/15",
-          isHidden ? "pointer-events-none -translate-y-full" : "pointer-events-auto translate-y-0",
+          "absolute inset-x-0 top-0 pointer-events-auto bg-header",
+          "transition-[transform,opacity] duration-200 ease-out will-change-transform",
+          isHidden
+            ? "pointer-events-none -translate-y-full opacity-0 border-t border-transparent"
+            : "pointer-events-auto translate-y-0 opacity-100 border-t border-white/15",
         ].join(" ")}
       >
         {children}
