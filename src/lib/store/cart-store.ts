@@ -16,15 +16,12 @@ type CartState = {
   /** Primary cart — keyed by `${product_public_id}::${variant_public_id ?? "default"}` */
   itemsMap: CartMap;
   hydrated: boolean;
-  cartPanelOpen: boolean;
   /**
    * Temporary checkout map for Buy Now flows.
    * Populated by `startBuyNow`, never persisted.
    * When non-null the checkout view reads from this map instead of `itemsMap`.
    */
   buyNowMap: CartMap | null;
-  openCartPanel: () => void;
-  closeCartPanel: () => void;
   hydrateCart: () => void;
   addItem: (item: Omit<CartItem, "quantity">, quantity?: number) => void;
   removeItem: (
@@ -192,11 +189,7 @@ function getLineMutationTarget(
 export const useCartStore = create<CartState>((set, get) => ({
   itemsMap: {},
   hydrated: false,
-  cartPanelOpen: false,
   buyNowMap: null,
-
-  openCartPanel: () => set({ cartPanelOpen: true }),
-  closeCartPanel: () => set({ cartPanelOpen: false }),
 
   hydrateCart: () => {
     const loaded = loadMapFromStorage();

@@ -6,7 +6,7 @@ import { useEffect, useMemo } from "react";
 
 import { useVariantSelection } from "@/components/product/product-variant-selection";
 import { useCart } from "@/hooks/useCart";
-import { useRouter } from "@/i18n/routing";
+import { useAddToCartDialogStore } from "@/lib/store/add-to-cart-dialog-store";
 import { triggerAddToCart, triggerViewContent } from "@/lib/tracker";
 import { cn } from "@/lib/utils";
 
@@ -36,8 +36,8 @@ export function ProductDetailBuySection({
   const t = useTranslations("product");
   const tDetail = useTranslations("productDetail");
   const tPrepay = useTranslations("prepayment");
-  const { addItem, openCartPanel, startBuyNow } = useCart();
-  const router = useRouter();
+  const { addItem, startBuyNow } = useCart();
+  const openAddToCartDialog = useAddToCartDialogStore((s) => s.openDialog);
   const { variants, selectedValues, setSelectedValue, selectedVariant, optionsByAttribute } =
     useVariantSelection();
 
@@ -103,7 +103,11 @@ export function ProductDetailBuySection({
       id: productPublicId,
       value: Number(effectivePrice),
     });
-    openCartPanel();
+    openAddToCartDialog({
+      name: productName,
+      image_url: imageUrl,
+      variant_details: payload().variant_details,
+    });
   };
 
   function handleOrderNow() {
@@ -111,7 +115,8 @@ export function ProductDetailBuySection({
     // Clone current cart + merge this item into a temporary Buy Now map.
     // The main cart is NOT mutated — checkout reads from buyNowMap instead.
     startBuyNow(payload(), 1);
-    router.push("/checkout");
+    // Checkout is an explicit flow; keep navigation.
+    window.location.assign("/checkout");
   }
 
   async function handleShare() {

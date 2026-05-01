@@ -16,7 +16,6 @@ export function useCart() {
   const increment = useCartStore((state) => state.increment);
   const decrement = useCartStore((state) => state.decrement);
   const clear = useCartStore((state) => state.clear);
-  const openCartPanel = useCartStore((state) => state.openCartPanel);
   const startBuyNow = useCartStore((state) => state.startBuyNow);
   const clearBuyNow = useCartStore((state) => state.clearBuyNow);
   const updateItemVariant = useCartStore((state) => state.updateItemVariant);
@@ -72,7 +71,6 @@ export function useCart() {
     increment,
     decrement,
     clear,
-    openCartPanel,
     startBuyNow,
     clearBuyNow,
     updateItemVariant,

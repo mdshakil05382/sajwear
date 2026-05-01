@@ -19,6 +19,7 @@ import { resolveStorefrontImageUrl, storefrontImageUnoptimized } from "@/lib/sto
 import { triggerAddToCart } from "@/lib/tracker";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/hooks/useCart";
+import { useAddToCartDialogStore } from "@/lib/store/add-to-cart-dialog-store";
 import type { Product, ProductDetail } from "@/types/product";
 import type { Locale } from "@/i18n/routing";
 
@@ -39,7 +40,8 @@ const VariantPicker = memo(function VariantPicker({ detail, onAdded }: PickerPro
   const tDetail = useTranslations("productDetail");
   const productT = useTranslations("product");
   const locale = useLocale() as Locale;
-  const { addItem, openCartPanel } = useCart();
+  const { addItem } = useCart();
+  const openAddToCartDialog = useAddToCartDialogStore((s) => s.openDialog);
   const { selectedValues, setSelectedValue, selectedVariant, optionsByAttribute } =
     useVariantSelection();
 
@@ -69,8 +71,12 @@ const VariantPicker = memo(function VariantPicker({ detail, onAdded }: PickerPro
       id: detail.public_id,
       value: Number(selectedVariant.price),
     });
-    openCartPanel();
     onAdded();
+    openAddToCartDialog({
+      name: detail.name,
+      image_url: detail.image_url,
+      variant_details: selectedVariant.options.map((o) => `${o.attribute_name}: ${o.value}`).join(", "),
+    });
   }
 
   const imageSrc = resolveStorefrontImageUrl(detail.image_url);

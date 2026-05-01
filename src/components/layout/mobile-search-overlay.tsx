@@ -59,7 +59,7 @@ export function MobileSearchOverlay({
           aria-label={openSearchAriaLabel}
           aria-haspopup="dialog"
           aria-expanded={open}
-          className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg border-0 bg-transparent p-0 text-white transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/80 md:hidden"
+          className="inline-flex size-10 shrink-0 items-center justify-center border-0 bg-transparent p-0 text-white transition-transform duration-150 hover:scale-[1.06] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/80 md:hidden"
         >
           <Search className="size-6 shrink-0" strokeWidth={1.75} aria-hidden />
         </button>

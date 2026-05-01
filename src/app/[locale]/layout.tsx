@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 
 import { GlobalPromoPopup } from "@/components/marketing/global-promo-popup";
 import { AosInit } from "@/components/common/aos-init";
+import { AddToCartDialogHost } from "@/components/common/add-to-cart-dialog";
 import { Footer } from "@/components/layout/footer";
 import { Navbar } from "@/components/layout/navbar";
 import { StorefrontRuntimeBoot } from "@/components/paperbase/storefront-runtime-boot";
@@ -86,6 +87,7 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
           className={`${poppins.variable} ${notoSansBengali.variable} flex min-h-screen flex-col bg-white ${activeLocale === "bn" ? "font-sans-bn" : "font-sans-en"}`}
         >
           <GlobalPromoPopup popup={popup} />
+          <AddToCartDialogHost />
           <Navbar />
           <main className="flex min-h-0 flex-1 flex-col">{children}</main>
           <Footer />

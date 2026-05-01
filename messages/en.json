@@ -176,7 +176,8 @@
     "items": "{count, plural, =0 {0 items} one {# item} other {# items}}",
     "remove": "Remove",
     "clear": "Clear cart",
-    "checkout": "Proceed to checkout"
+    "checkout": "Proceed to checkout",
+    "viewCart": "View cart"
   },
   "checkout": {
     "metaTitle": "Checkout",

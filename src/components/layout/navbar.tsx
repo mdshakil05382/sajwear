@@ -1,7 +1,7 @@
 import { getTranslations } from "next-intl/server";
 
 import { AccountNavLink } from "@/components/common/account-nav-link";
-import { CartPanelHost, CartTrigger } from "@/components/common/cart-drawer-trigger";
+import { CartTrigger } from "@/components/common/cart-drawer-trigger";
 import { Link } from "@/i18n/routing";
 import { DesktopSearchOverlay } from "@/components/layout/desktop-search-overlay";
 import { DesktopCategoryMegaNav } from "@/components/layout/desktop-category-mega-nav";
@@ -107,8 +107,6 @@ export async function Navbar() {
         </div>
       </PageContainer>
       <div className="h-px w-full bg-black/15 md:hidden" />
-
-      <CartPanelHost />
 
       <div className="hidden h-px w-full bg-white/15 md:block" />
 

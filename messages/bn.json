@@ -176,7 +176,8 @@
     "items": "{count, plural, =0 {০ টি পণ্য} one {# টি পণ্য} other {# টি পণ্য}}",
     "remove": "মুছুন",
     "clear": "কার্ট খালি করুন",
-    "checkout": "চেকআউটে যান"
+    "checkout": "চেকআউটে যান",
+    "viewCart": "কার্ট দেখুন"
   },
   "checkout": {
     "metaTitle": "চেকআউট",

@@ -54,7 +54,7 @@ export function DesktopSearchOverlay({
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => setOpen(true)}
-        className="hidden size-10 items-center justify-center rounded-md text-white transition hover:bg-black/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black/40 md:inline-flex"
+        className="hidden size-10 items-center justify-center text-white transition-transform duration-150 hover:scale-[1.06] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black/40 md:inline-flex"
       >
         <Search className="size-5" strokeWidth={1.9} aria-hidden />
       </button>

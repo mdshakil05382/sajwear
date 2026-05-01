@@ -167,9 +167,9 @@ export function DesktopCategoryMegaNav({
                       className={cn(
                         categoryBarItemClass,
                         "cursor-pointer gap-1 border-0 bg-transparent text-white/90 transition-colors",
-                        "hover:bg-white/10 hover:text-white",
-                        "focus-visible:bg-white/10 focus-visible:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40",
-                        isOpen && "bg-white/15 text-white",
+                        "underline decoration-transparent decoration-1 underline-offset-8 hover:decoration-white/80 hover:text-white",
+                        "focus-visible:decoration-white/80 focus-visible:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40",
+                        isOpen && "text-white decoration-white/80",
                       )}
                       aria-expanded={isOpen}
                       aria-controls={showPanel && active?.id === category.id ? panelId : undefined}
@@ -191,8 +191,8 @@ export function DesktopCategoryMegaNav({
                       className={cn(
                         categoryBarItemClass,
                         "text-white/90 transition-colors",
-                        "hover:bg-white/10 hover:text-white",
-                        "focus-visible:bg-white/10 focus-visible:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40",
+                        "underline decoration-transparent decoration-1 underline-offset-8 hover:decoration-white/80 hover:text-white",
+                        "focus-visible:decoration-white/80 focus-visible:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40",
                       )}
                     >
                       {category.label}
