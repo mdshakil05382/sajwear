@@ -1,0 +1,23 @@
+name: Sync Client Forks
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        fork:
+          - client1-username/repo-name
+          - client2-username/repo-name
+          - client3-username/repo-name
+    steps:
+      - name: Sync fork
+        run: |
+          curl -X POST \
+            -H "Authorization: token ${{ secrets.PAT_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ matrix.fork }}/merge-upstream \
+            -d '{"branch":"master"}'

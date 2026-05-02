@@ -1,36 +1,56 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# storefront-paperbase
 
-## Getting Started
+Next.js storefront for [Paperbase](https://paperbase.me): catalog, cart, checkout, orders, blog, and localized pages. Server routes proxy and authenticate against the Paperbase backend using your publishable key.
 
-First, run the development server:
+## Stack
+
+- **Next.js** 16 (App Router, Turbopack in dev)
+- **React** 19, **TypeScript**, **Tailwind CSS** 4
+- **next-intl** — locales `en` and `bn` (locale prefix always on; routes live under `/[locale]/…`)
+
+## Prerequisites
+
+- Node.js 20+ (matches `@types/node` in this repo)
+- npm, pnpm, yarn, or bun
+
+## Environment variables
+
+Create a `.env.local` (not committed) with:
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `PAPERBASE_BACKEND_ORIGIN` | Yes* | Backend origin without trailing slash, e.g. `https://api.paperbase.me` or `http://127.0.0.1:8000`. |
+| `PAPERBASE_API_URL` | Yes* | Alternative to `PAPERBASE_BACKEND_ORIGIN`: full API base URL; the app strips `/api/v1` if present and derives the origin. |
+| `PAPERBASE_PUBLISHABLE_KEY` | Yes | Storefront publishable key (must start with `ak_pk_`). |
+| `NEXT_PUBLIC_PAPERBASE_BACKEND_ORIGIN` | No | Same origin as the backend for browser-facing behavior (images, tracker shim). Set for local dev so it matches `PAPERBASE_BACKEND_ORIGIN`. |
+| `NEXT_PUBLIC_IMAGE_REMOTE_HOSTS` | No | Comma-separated extra hostnames allowed for `next/image` remote patterns. |
+| `NEXT_PUBLIC_API_URL` | No | Base URL for client `apiFetch` calls to this app’s `/api/*` routes; empty means same origin. |
+
+\* One of `PAPERBASE_BACKEND_ORIGIN` or `PAPERBASE_API_URL` is required.
+
+## Getting started
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000). You will be redirected to a locale-prefixed path (e.g. `/en`).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Development server with Turbopack |
+| `npm run build` | Production build |
+| `npm start` | Start production server (after `build`) |
+| `npm run lint` | ESLint |
 
-## Learn More
+## Fork sync (maintainers)
 
-To learn more about Next.js, take a look at the following resources:
+This repository can include a GitHub Action (`.github/workflows/sync-fork.yml`) that triggers upstream merges on `master` for configured fork repositories. Configure the matrix of fork repos and a `PAT_TOKEN` secret with permissions to call the GitHub merge-upstream API on those forks.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Learn more
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [Next.js documentation](https://nextjs.org/docs)
+- [next-intl](https://next-intl-docs.vercel.app/)
