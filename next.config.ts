@@ -80,7 +80,7 @@ const nextConfig: NextConfig = {
       // 2. Next.js optimized images
       // -------------------------------------------------------
       {
-        source: "/_next/image:path*",
+        source: "/_next/image/:path*",
         headers: [
           {
             key: "Cache-Control",
